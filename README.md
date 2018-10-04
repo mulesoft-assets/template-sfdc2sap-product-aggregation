@@ -40,7 +40,7 @@ Failing to do so could lead to unexpected behavior of the template.
 
 This template uses a few private Maven dependencies from MuleSoft to work. If you intend to run this template with Maven support, you need to add three dependencies in the pom.xml file that begin with the following group IDs:
 
-    **com.sap.conn.jco** or **com.sap.conn.idoc**
+    com.sap.conn.jco or com.sap.conn.idoc
 
 ## SAP Considerations
 
