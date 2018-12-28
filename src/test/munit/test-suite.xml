@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sap="http://www.mulesoft.org/schema/mule/sap" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+    xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sap http://www.mulesoft.org/schema/mule/sap/current/mule-sap.xsd">
+    <munit:config name="test-suite.xml" doc:name="MUnit configuration" />
+
+    <configuration-properties doc:name="Configuration properties" doc:id="12555535-5efe-4d7f-aae6-027527ef19d8" file="mule.test.properties" />
+    <configuration-properties doc:name="Configuration properties" doc:id="d6c06e26-0c58-438b-abdc-bec46d142f2d" file="common.properties" />
+
+    <munit:before-test name="test-suiteBefore_Test" description="Before tests actions" doc:id="a98fb06f-5ef1-4252-9cc6-65a07059817c">
+        <flow-ref doc:name="Call getSAPDataSubFlow" doc:id="a00a704f-1443-4a2d-b762-dc050595df67" name="getSAPDataSubFlow" />
+        <ee:transform doc:name="Prepare test data" doc:id="26ae12f4-aea3-4d10-ab85-fbfdf9f714a7">
+            <ee:message>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="testNameSfdc"><![CDATA[%dw 2.0
+output application/java
+---
+"Test product Salesforce" ++ randomInt(1000)]]></ee:set-variable>
+                <ee:set-variable variableName="testNameSap"><![CDATA[%dw 2.0
+output application/java
+---
+payload[0].Name]]></ee:set-variable>
+                <ee:set-variable variableName="testNameSapSfdc"><![CDATA[%dw 2.0
+output application/java
+---
+payload[1].Name]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Prepare data for Salesforce" doc:id="ef2cbb38-8741-41e3-bcd5-af3cae92d7d6">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[
+	{
+		"Name": vars.testNameSfdc
+	},
+	{
+		"Name": vars.testNameSapSfdc
+	}
+]]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <salesforce:create doc:name="Create Products in Salesforce" doc:id="346a6c42-c382-4917-b98d-c7e5508ffb90" config-ref="Salesforce_Sfdc_config"
+            type="Product2">
+        </salesforce:create>
+        <ee:transform doc:name="Store IDs to variable sfdcIds" doc:id="b246c280-1303-4ed8-a80a-edbf78e27c35">
+            <ee:message>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="sfdcIds"><![CDATA[%dw 2.0
+output application/java
+---
+payload map ($.id)]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <munit-tools:mock-when doc:name="Mock email processor to avoid sending email" doc:id="93a56446-6b31-4470-a18e-64288a17705e"
+            processor="email:send">
+            <munit-tools:then-return />
+        </munit-tools:mock-when>
+    </munit:before-test>
+    <munit:test name="test-suite-businessLogicFlowTest" description="Test" doc:id="3a9f2695-a361-4ec5-840d-90aa5ed6d781">
+        <munit:execution>
+            <flow-ref doc:name="Call businessLogicFlow" doc:id="f85a2a1c-ced9-4a7b-b53c-d8f629258097" name="businessLogicFlow" />
+            <ee:transform doc:name="Filtering test records" doc:id="d9164f61-3e35-4101-9e9c-fe463993dd38">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload filter ($.Name == vars.testNameSfdc or $.Name == vars.testNameSap or $.Name == vars.testNameSapSfdc)]]>
+                    </ee:set-payload>
+                </ee:message>
+            </ee:transform>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that doc:name="Assert number of records" doc:id="f03a634f-52dc-4589-87a9-7930a787ad4c"
+                expression="#[sizeOf(payload)]" is="#[MunitTools::equalTo(3)]" message="Assert number of records" />
+            <munit-tools:assert-that doc:name="Assert that the first record is correct" doc:id="ccf1e4fc-0db9-4e99-9220-978a668ce999"
+                is="#[MunitTools::equalTo(vars.testNameSfdc)]" expression="#[payload[0].Name]" message="The first record is incorrect" />
+            <munit-tools:assert-that doc:name="Assert that the first record exists in Salesforce" doc:id="3a2b2cb7-0aa1-4ed0-8e46-cfd22a824a3f"
+                expression="#[payload[0].IDInSFDC]" is="#[MunitTools::not(MunitTools::isEmptyOrNullString())]" message="The first record doesn't exist in Salesforce" />
+            <munit-tools:assert-that doc:name="Assert that the first record does not exist in SAP" doc:id="5a917292-5bb4-47a2-8e5a-6e2d2d76695e"
+                expression="#[payload[0].IDInSAP]" is="#[MunitTools::isEmptyOrNullString()]" message="The first record exists in instance SAP" />
+            <munit-tools:assert-that doc:name="Assert that the second record is correct" doc:id="3bbc1ba8-3ef4-4fff-bdf2-d7cd43c22c9e"
+                is="#[MunitTools::equalTo(vars.testNameSap)]" expression="#[payload[1].Name]" message="The second record is incorrect" />
+            <munit-tools:assert-that doc:name="Assert that the secord record does not exist in Salesforce" doc:id="687b7f5c-8ec6-4128-bcfb-000b96b7d8ac"
+                expression="#[payload[1].IDInSFDC]" is="#[MunitTools::isEmptyOrNullString()]" message="The secord record exists in Salesforce" />
+            <munit-tools:assert-that doc:name="Assert that the secord record exists in SAP" doc:id="4bae9774-5ccf-4ee9-b055-cbfafabc3ad6"
+                is="#[MunitTools::not(MunitTools::isEmptyOrNullString())]" expression="#[payload[1].IDInSAP]" message="The secord record doesn't exist in SAP" />
+            <munit-tools:assert-that doc:name="Assert that the third record is correct" doc:id="3cf05663-1f96-4c84-9ab0-3a8a785a6589"
+                is="#[MunitTools::equalTo(vars.testNameSapSfdc)]" expression="#[payload[2].Name]" message="The third record is incorrect" />
+            <munit-tools:assert-that doc:name="Assert that the third record exists in Salesforce" doc:id="a1604628-a968-42ff-a47b-29941d66b9fc"
+                expression="#[payload[2].IDInSFDC]" is="#[MunitTools::not(MunitTools::isEmptyOrNullString())]" message="The third record doesn't exist in Salesforce" />
+            <munit-tools:assert-that doc:name="Assert that the third record exists in SAP" doc:id="7e019696-a3d3-4cfa-a11d-4f99155a989a"
+                expression="#[payload[2].IDInSAP]" is="#[MunitTools::not(MunitTools::isEmptyOrNullString())]" message="The third record doesn't exist in SAP" />
+        </munit:validation>
+    </munit:test>
+
+    <munit:after-test name="test-suiteAfter_Test" description="After tests actions" doc:id="01627a51-9a7b-406b-b310-ea9a034229bf">
+        <salesforce:delete doc:name="Delete test data from Salesforce" doc:id="46d4221e-5a34-48ec-af0a-1a8f49ea115b" config-ref="Salesforce_Sfdc_config">
+            <salesforce:delete-ids><![CDATA[#[vars.sfdcIds]]]></salesforce:delete-ids>
+        </salesforce:delete>
+    </munit:after-test>
+</mule>
