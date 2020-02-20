@@ -107,8 +107,8 @@ output application/xml
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<sap:execute-synchronous-remote-function-call doc:name="Query materials from SAP" doc:id="f2cc9392-f6b6-4131-86f0-6683820282c3" config-ref="SAP_Outbound" key="BAPI_MATERIAL_GETLIST">
-				</sap:execute-synchronous-remote-function-call>
+		<sap:sync-rfc doc:name="Query materials from SAP" doc:id="f2cc9392-f6b6-4131-86f0-6683820282c3" config-ref="SAP_Config" key="BAPI_MATERIAL_GETLIST">
+				</sap:sync-rfc>
 		<ee:transform doc:name="Convert SAP response to Salesforce Product" doc:id="02f5401c-e5c4-4997-8400-62ba8fcd98c5">
 					<ee:message>
 						<ee:set-payload><![CDATA[%dw 2.0
