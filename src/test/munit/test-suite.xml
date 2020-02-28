@@ -60,7 +60,7 @@ output application/java
                 <ee:set-variable variableName="sfdcIds"><![CDATA[%dw 2.0
 output application/java
 ---
-payload map ($.id)]]></ee:set-variable>
+payload.items.id]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
         <munit-tools:mock-when doc:name="Mock email processor to avoid sending email" doc:id="93a56446-6b31-4470-a18e-64288a17705e"
