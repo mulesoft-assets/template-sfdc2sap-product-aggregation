@@ -107,7 +107,7 @@ payload filter ($.Name == vars.testNameSfdc or $.Name == vars.testNameSap or $.N
 
     <munit:after-test name="test-suiteAfter_Test" description="After tests actions" doc:id="01627a51-9a7b-406b-b310-ea9a034229bf">
         <salesforce:delete doc:name="Delete test data from Salesforce" doc:id="46d4221e-5a34-48ec-af0a-1a8f49ea115b" config-ref="Salesforce_Sfdc_config">
-            <salesforce:delete-ids><![CDATA[#[vars.sfdcIds]]]></salesforce:delete-ids>
+            <salesforce:ids><![CDATA[#[vars.sfdcIds]]]></salesforce:ids>
         </salesforce:delete>
     </munit:after-test>
 </mule>
